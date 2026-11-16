@@ -8,16 +8,15 @@
             <div>
                 <p class="section-kicker">JOB POSTING</p>
                 <h1>{{ job.title }}</h1>
-                <p>{{ company.name|default:"Company not available" }}{% if job.location %} &middot; {{ job.location }}{% endif %}</p>
+                <p>
+                    {{ company.name|default:"Company not available" }}
+                    {% if job.location %} &middot; {{ job.location }}{% endif %}
+                </p>
             </div>
             <a class="button button-outline" href="{{ back_url }}">Back to results</a>
         </header>
 
-        {% if job.details_status == "pending" %}
-            <div class="details-notice">
-                Full details have not been collected yet. The details stage will populate any information available from the source.
-            </div>
-        {% elif job.details_status == "failed" %}
+        {% if job.details_status == "failed" %}
             <div class="details-notice details-notice-error" role="status">
                 <strong>Full details could not be collected.</strong>
                 {% if job.details_error %}<p>{{ job.details_error }}</p>{% endif %}
@@ -25,81 +24,21 @@
         {% endif %}
 
         <div class="job-details-sections">
-            <section class="dashboard-card detail-card" aria-labelledby="job-info-title">
-                <dl class="detail-grid">
-                    <div class="detail-item">
-                        <dt>Location</dt>
-                        <dd>{{ job.location|default:"Not provided" }}</dd>
-                    </div>
-                    <div class="detail-item">
-                        <dt>Posted</dt>
-                        <dd>{{ job.posted_at|date:"M j, Y"|default:"Not provided" }}</dd>
-                    </div>
-                    <div class="detail-item">
-                        <dt>Employment type</dt>
-                        <dd>{{ job.employment_type|default:"Not provided" }}</dd>
-                    </div>
-                    <div class="detail-item">
-                        <dt>Workplace type</dt>
-                        <dd>{{ job.workplace_type|default:"Not provided" }}</dd>
-                    </div>
-                    <div class="detail-item">
-                        <dt>Salary range</dt>
-                        <dd>
-                            {% if job.salary_min or job.salary_max %}
-                                {{ job.salary_currency }} {{ job.salary_min|default:"—" }}–{{ job.salary_max|default:"—" }}
-                            {% else %}
-                                Not provided
-                            {% endif %}
-                        </dd>
-                    </div>
-                    <div class="detail-item">
-                        <dt>Source</dt>
-                        <dd>{{ job.source }}</dd>
-                    </div>
-                    <div class="detail-item">
-                        <dt>External job ID</dt>
-                        <dd>{{ job.external_id }}</dd>
-                    </div>
-                    <div class="detail-item">
-                        <dt>First collected</dt>
-                        <dd>{{ job.first_seen_at|date:"M j, Y, P" }}</dd>
-                    </div>
-                    <div class="detail-item">
-                        <dt>Details last updated</dt>
-                        <dd>{{ job.details_updated_at|date:"M j, Y, P"|default:"Not yet processed" }}</dd>
-                    </div>
-                    <div class="detail-item">
-                        <dt>Job posting</dt>
-                        <dd>
-                            {% if job.job_url %}
-                                <a href="{{ job.job_url }}" target="_blank" rel="noopener noreferrer">Open original posting</a>
-                            {% else %}
-                                Not provided
-                            {% endif %}
-                        </dd>
-                    </div>
-                </dl>
-
-                <section class="detail-description" aria-labelledby="job-description-title">
-                    <h3 id="job-description-title">Description</h3>
-                    {% if job.description %}
-                        <div>{{ job.description|linebreaksbr }}</div>
-                    {% else %}
-                        <p class="detail-empty">No job description has been collected.</p>
-                    {% endif %}
-                </section>
-
-                {% if job.raw_data %}
-                    <details class="raw-data-details">
-                        <summary>View collected job data</summary>
-                        <pre>{{ job_raw_data }}</pre>
-                    </details>
-                {% endif %}
-            </section>
-
             <section class="dashboard-card detail-card" aria-labelledby="company-info-title">
-                 {% if company %}
+                <div class="company-info-heading">
+                    <div>
+                        <h2 id="company-info-title">Company profile</h2>
+                        <p class="company-info-help">Fetch and save available information from the LinkedIn company profile.</p>
+                    </div>
+                    {% if company and company.profile_url %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <button class="button button-primary" type="submit">Fetch company data from LinkedIn</button>
+                        </form>
+                    {% endif %}
+                </div>
+                {% if company %}
+
                     <dl class="detail-grid">
                         <div class="detail-item">
                             <dt>Industry</dt>
@@ -144,20 +83,81 @@
                         {% if company.description %}
                             <div>{{ company.description|linebreaksbr }}</div>
                         {% else %}
-                            <p class="detail-empty">No company description has been collected.</p>
+                            <p class="detail-empty">No company description has been collected yet. Use the button above to fetch profile data.</p>
                         {% endif %}
                     </section>
-
-                    {% if company.raw_data %}
-                        <details class="raw-data-details">
-                            <summary>View collected company data</summary>
-                            <pre>{{ company_raw_data }}</pre>
-                        </details>
-                    {% endif %}
                 {% else %}
-                    <p class="detail-empty">No company details have been collected for this posting.</p>
+                    <p class="detail-empty">No company profile is associated with this posting.</p>
                 {% endif %}
             </section>
+
+            <section class="dashboard-card detail-card" aria-labelledby="job-info-title">
+                <h2 id="job-info-title">Job posting information</h2>
+                <dl class="detail-grid">
+                    <div class="detail-item">
+                        <dt>Location</dt>
+                        <dd>{{ job.location|default:"Not provided" }}</dd>
+                    </div>
+                    <div class="detail-item">
+                        <dt>Posted</dt>
+                        <dd>{{ job.posted_at|date:"M j, Y"|default:"Not provided" }}</dd>
+                    </div>
+                    <div class="detail-item">
+                        <dt>Employment type</dt>
+                        <dd>{{ job.employment_type|default:"Not provided" }}</dd>
+                    </div>
+                    <div class="detail-item">
+                        <dt>Workplace type</dt>
+                        <dd>{{ job.workplace_type|default:"Not provided" }}</dd>
+                    </div>
+                    <div class="detail-item">
+                        <dt>Salary range</dt>
+                        <dd>
+                            {% if job.salary_min or job.salary_max %}
+                                {{ job.salary_currency }} {{ job.salary_min|default:"—" }}–{{ job.salary_max|default:"—" }}
+                            {% else %}
+                                Not provided
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div class="detail-item">
+                        <dt>Source</dt>
+                        <dd>{{ job.source }}</dd>
+                    </div>
+                    <div class="detail-item">
+                        <dt>External job ID</dt>
+                        <dd>{{ job.external_id }}</dd>
+                    </div>
+                    <div class="detail-item">
+                        <dt>First collected</dt>
+                        <dd>{{ job.first_seen_at|date:"M j, Y, P" }}</dd>
+                    </div>
+                    <div class="detail-item">
+                        <dt>Job details last updated</dt>
+                        <dd>{{ job.details_updated_at|date:"M j, Y, P"|default:"Not yet processed" }}</dd>
+                    </div>
+                    <div class="detail-item">
+                        <dt>Job posting</dt>
+                        <dd>
+                            {% if job.job_url %}
+                                <a href="{{ job.job_url }}" target="_blank" rel="noopener noreferrer">Open original posting</a>
+                            {% else %}
+                                Not provided
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+
+                <section class="detail-description" aria-labelledby="job-description-title">
+                    <h3 id="job-description-title">Description</h3>
+                    {% if job.description %}
+                        <div>{{ job.description|linebreaksbr }}</div>
+                    {% else %}
+                        <p class="detail-empty">No job description has been collected.</p>
+                    {% endif %}
+                </section>
+            </section>
+
         </div>
     </div>
 {% endblock %}
