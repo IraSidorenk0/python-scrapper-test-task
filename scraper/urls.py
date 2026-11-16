@@ -11,19 +11,14 @@ urlpatterns = [
     path("logout/", views.ScraperLogoutView.as_view(), name="logout"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path(
-        "dashboard/search/<int:query_id>/toggle/",
-        views.toggle_search_query,
-        name="toggle_search_query",
-    ),
-    path(
-        "dashboard/search/<int:query_id>/delete/",
-        views.delete_search_query,
-        name="delete_search_query",
-    ),
-    path(
         "dashboard/export.csv",
         views.export_user_jobs_csv,
         name="export_user_jobs_csv",
+    ),
+    path(
+        "dashboard/export.xlsx",
+        views.export_user_jobs_excel,
+        name="export_user_jobs_excel",
     ),
     path("jobs/export.csv", views.export_jobs_csv, name="export_jobs_csv"),
 ]

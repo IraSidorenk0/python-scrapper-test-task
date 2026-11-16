@@ -41,7 +41,14 @@ INSTALLED_APPS = [
     'scraper',
 ]
 
-JOB_DATA_PROVIDER = os.environ.get("JOB_DATA_PROVIDER", "")
+JOB_DATA_PROVIDER = os.environ.get(
+    "JOB_DATA_PROVIDER",
+    "scraper.parsers.LinkedInJobsProvider",
+)
+LINKEDIN_MAX_PAGES = int(os.environ.get("LINKEDIN_MAX_PAGES", "20"))
+LINKEDIN_PAGE_DELAY_SECONDS = float(
+    os.environ.get("LINKEDIN_PAGE_DELAY_SECONDS", "1")
+)
 LOGIN_URL = "scraper:login"
 LOGIN_REDIRECT_URL = "scraper:dashboard"
 LOGOUT_REDIRECT_URL = "scraper:home"

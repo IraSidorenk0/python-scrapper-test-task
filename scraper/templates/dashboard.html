@@ -6,111 +6,40 @@
     <div class="dashboard-page">
         <section class="dashboard-heading">
             <div>
-                <p class="eyebrow"><span class="eyebrow-dot"></span> YOUR WORKSPACE</p>
-                <h1>Your dashboard</h1>
-                <p>Save a search, collect matching roles, and keep everything organized.</p>
+                <h1>Dashboard</h1>
+                <p>Search LinkedIn vacancies by role and country. Results appear below.</p>
             </div>
-            <a class="button button-outline" href="{% url 'scraper:export_user_jobs_csv' %}?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}">
-                <span class="download-icon" aria-hidden="true">&darr;</span>
-                Export results
-            </a>
+            <div class="dashboard-export-actions">
+                <a class="button button-outline" href="{% url 'scraper:export_user_jobs_csv' %}?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}">
+                    <span class="download-icon" aria-hidden="true">&darr;</span>
+                    Export CSV
+                </a>
+                <a class="button button-outline" href="{% url 'scraper:export_user_jobs_excel' %}?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}">
+                    <span class="download-icon" aria-hidden="true">&darr;</span>
+                    Export Excel
+                </a>
+            </div>
         </section>
 
-        <div class="dashboard-top-grid">
-            <section class="dashboard-card search-builder">
-                <div class="section-heading">
-                    <span class="section-icon icon-blue" aria-hidden="true">
-                        <span class="search-icon"></span>
-                    </span>
-                    <div>
-                        <p class="section-kicker">GET STARTED</p>
-                        <h2>Start a job search</h2>
-                    </div>
+        <section class="dashboard-card search-builder">
+            <div class="section-heading">
+                <span class="section-icon icon-blue" aria-hidden="true">
+                    <span class="search-icon"></span>
+                </span>
+                <div>
+                    <p class="section-kicker">FIND A ROLE</p>
+                    <h2>Search LinkedIn vacancies</h2>
                 </div>
-                <form method="post" class="dashboard-search-form">
-                    {% csrf_token %}
-                    {{ form.as_p }}
-                    <button class="button button-primary" type="submit">
-                        Save search
-                        <span aria-hidden="true">&rarr;</span>
-                    </button>
-                </form>
-                <p class="process-note">
-                    <span class="note-dot" aria-hidden="true"></span>
-                    Searches are collected by the scraper process. Run
-                    <code>python manage.py run_search</code> to fetch results.
-                </p>
-            </section>
-
-            <section class="dashboard-card saved-searches">
-                <div class="section-heading section-heading-spread">
-                    <div class="section-heading">
-                        <span class="section-icon icon-mint" aria-hidden="true">
-                            <span class="saved-search-icon"></span>
-                        </span>
-                        <div>
-                            <p class="section-kicker">YOUR ACTIVITY</p>
-                            <h2>Saved searches</h2>
-                        </div>
-                    </div>
-                    <span class="section-count">{{ queries|length }}</span>
-                </div>
-
-                {% if queries %}
-                    <div class="saved-search-list">
-                        {% for saved_query in queries %}
-                            <article class="saved-search-item">
-                                <div class="saved-search-info">
-                                    <div class="saved-search-title">
-                                        <a href="?query_id={{ saved_query.pk }}">{{ saved_query.query }}</a>
-                                        {% if not saved_query.enabled %}
-                                            <span class="status-pill status-paused">Paused</span>
-                                        {% elif saved_query.last_run_at %}
-                                            {% if saved_query.last_error %}
-                                                <span class="status-pill status-review">Needs review</span>
-                                            {% else %}
-                                                <span class="status-pill status-complete">Collected</span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="status-pill status-queued">Queued</span>
-                                        {% endif %}
-                                    </div>
-                                    <p class="saved-search-meta">
-                                        <span>{{ saved_query.country }}</span>
-                                        <span class="meta-separator" aria-hidden="true"></span>
-                                        <span>Last run: {{ saved_query.last_run_at|default:"Not run" }}</span>
-                                    </p>
-                                    {% if saved_query.last_error %}
-                                        <details class="search-error-details">
-                                            <summary>View search errors</summary>
-                                            <pre>{{ saved_query.last_error }}</pre>
-                                        </details>
-                                    {% endif %}
-                                </div>
-                                <div class="saved-search-actions">
-                                    <form method="post" action="{% url 'scraper:toggle_search_query' saved_query.pk %}">
-                                        {% csrf_token %}
-                                        <button class="button button-outline button-small" type="submit">
-                                            {% if saved_query.enabled %}Pause{% else %}Enable{% endif %}
-                                        </button>
-                                    </form>
-                                    <form method="post" action="{% url 'scraper:delete_search_query' saved_query.pk %}">
-                                        {% csrf_token %}
-                                        <button class="button button-danger button-small" type="submit">Remove</button>
-                                    </form>
-                                </div>
-                            </article>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty-searches">
-                        <span class="empty-search-icon" aria-hidden="true"></span>
-                        <p>No saved searches yet.</p>
-                        <span>Add a role and country to get started.</span>
-                    </div>
-                {% endif %}
-            </section>
-        </div>
+            </div>
+            <form method="post" class="dashboard-search-form">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="button button-primary" type="submit">
+                    Search LinkedIn
+                    <span aria-hidden="true">&rarr;</span>
+                </button>
+            </form>
+        </section>
 
         <section class="dashboard-card results-card">
             <div class="results-heading">
@@ -142,6 +71,16 @@
                     <a class="clear-filters" href="?{% if selected_query %}query_id={{ selected_query.pk }}{% endif %}">Clear</a>
                 {% endif %}
             </form>
+
+            {% if selected_query.last_error %}
+                <div class="provider-error" role="status">
+                    <strong>Some LinkedIn results could not be processed.</strong>
+                    <details>
+                        <summary>Show details</summary>
+                        <pre>{{ selected_query.last_error }}</pre>
+                    </details>
+                </div>
+            {% endif %}
 
             {% if page.object_list %}
                 <div class="results-table-wrap">
@@ -177,13 +116,32 @@
 
                 {% if page.has_other_pages %}
                     <nav class="pagination" aria-label="Results pagination">
-                        <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+                        <span class="pagination-summary">
+                            Showing {{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }} jobs
+                        </span>
                         <div class="pagination-actions">
                             {% if page.has_previous %}
-                                <a class="button button-outline button-small" href="?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}&amp;page={{ page.previous_page_number }}">Previous</a>
+                                <a class="pagination-link pagination-step" href="?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}&amp;page={{ page.previous_page_number }}" aria-label="Previous page">Previous</a>
+                            {% else %}
+                                <span class="pagination-link pagination-step pagination-disabled" aria-disabled="true">Previous</span>
                             {% endif %}
+
+                            <div class="pagination-pages">
+                                {% for page_number in page_range %}
+                                    {% if page_number == page.paginator.ELLIPSIS %}
+                                        <span class="pagination-ellipsis" aria-hidden="true">{{ page_number }}</span>
+                                    {% elif page_number == page.number %}
+                                        <span class="pagination-current" aria-current="page">{{ page_number }}</span>
+                                    {% else %}
+                                        <a class="pagination-link" href="?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}&amp;page={{ page_number }}" aria-label="Page {{ page_number }}">{{ page_number }}</a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+
                             {% if page.has_next %}
-                                <a class="button button-outline button-small" href="?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}&amp;page={{ page.next_page_number }}">Next</a>
+                                <a class="pagination-link pagination-step" href="?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}&amp;page={{ page.next_page_number }}" aria-label="Next page">Next</a>
+                            {% else %}
+                                <span class="pagination-link pagination-step pagination-disabled" aria-disabled="true">Next</span>
                             {% endif %}
                         </div>
                     </nav>
@@ -196,9 +154,12 @@
                     {% if search_term or country %}
                         <h3>No jobs match these filters</h3>
                         <p>Try changing or clearing the filters to see more results.</p>
+                    {% elif selected_query %}
+                        <h3>No vacancies found</h3>
+                        <p>LinkedIn returned no public job postings for this search.</p>
                     {% else %}
-                        <h3>No collected jobs yet</h3>
-                        <p>Save a search above and run the scraper to see matching job postings here.</p>
+                        <h3>Search for a vacancy</h3>
+                        <p>Enter a role and country above to load matching LinkedIn job postings.</p>
                     {% endif %}
                 </div>
             {% endif %}

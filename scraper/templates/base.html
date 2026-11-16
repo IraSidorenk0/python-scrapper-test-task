@@ -16,7 +16,6 @@
             </a>
             {% if user.is_authenticated %}
                 <div class="nav-actions">
-                    <a class="nav-link" href="{% url 'scraper:dashboard' %}">Dashboard</a>
                     <span class="user-label">Hi, {{ user.get_username }}</span>
                     <form method="post" action="{% url 'scraper:logout' %}">
                         {% csrf_token %}
@@ -35,7 +34,7 @@
     {% if messages %}
         <ul class="message-list" aria-live="polite">
             {% for message in messages %}
-                <li class="message">{{ message }}</li>
+                <li class="message message-{{ message.tags }}">{{ message }}</li>
             {% endfor %}
         </ul>
     {% endif %}

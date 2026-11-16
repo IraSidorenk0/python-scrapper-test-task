@@ -8,6 +8,6 @@ class SearchQueryForm(forms.ModelForm):
         model = SearchQuery
         fields = ("query", "country")
         widgets = {
-            "query": forms.TextInput(attrs={"placeholder": "Python Developer"}),
-            "country": forms.TextInput(attrs={"placeholder": "USA"}),
+            "query": forms.TextInput(attrs={"placeholder": "Input vacancy title, e.g. Python Developer"}),
+            "country": forms.TextInput(attrs={"placeholder": "Input country, e.g. USA"}),
         }

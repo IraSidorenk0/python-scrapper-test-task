@@ -1,15 +1,16 @@
 # Job postings scraper
 
 This Django project stores job search queries, collected postings, and company
-details in PostgreSQL. Searching and detail enrichment are separate commands,
-so either stage can be run or retried independently.
+details in PostgreSQL. Searching and detail enrichment are independent stages,
+so either can be run or retried separately.
 
 ## Data provider
 
 The application deliberately does not call LinkedIn's undocumented/private
 endpoints. Configure a provider only for a documented API or data source you
 are authorized to use. The provider is a Python class whose dotted import path
-is set in the `JOB_DATA_PROVIDER` environment variable. It must expose:
+is configured by the `JOB_DATA_PROVIDER` environment variable (defaulting to
+the included LinkedIn provider). It must expose:
 
 - `source`: a stable short string identifying the data source.
 - `search(query, country)`: an iterable yielding normalized job dictionaries.
@@ -28,43 +29,54 @@ The provider should translate API/network failures into
 `scraper.providers.ProviderError`, honor the API's published rate limits, and
 return dates as ISO-8601 strings. Do not put credentials in source control.
 
+The included `scraper.parsers.LinkedInJobsProvider` parses the publicly
+available LinkedIn jobs search and job-detail HTML pages. Use it only if your
+use of that data source is permitted. It uses ordinary HTTP requests, a
+15-second timeout, sequential pagination, and a one-second default delay
+between search pages; it does not log in or bypass access controls. Search
+pages are capped at 20 by default. You can reduce that cap or set it to the
+limit allowed by your data source with `LINKEDIN_MAX_PAGES`.
+
 ## Setup
 
 1. Create a PostgreSQL database and user, then set the database connection
    values in `config/settings.py` (or adapt that section to your deployment's
    environment-variable configuration).
 2. Install dependencies: `python -m pip install -r requirements.txt`.
-3. Configure `JOB_DATA_PROVIDER` to the dotted path of your authorized
-   provider class and supply its credentials through environment variables.
+3. The dashboard uses `scraper.parsers.LinkedInJobsProvider` by default.
+   To use a different authorized provider, set `JOB_DATA_PROVIDER` to its
+   dotted class path and supply any credentials through environment variables.
 4. Run `python manage.py migrate` and `python manage.py createsuperuser`.
 5. Start the server with `python manage.py runserver`, create an account at
    `/register/`, and log in at `/login/`.
 
 ## Run the two stages
 
-From the dashboard, submit a search term and country. Searches are saved for
-the signed-in user and picked up by the search command; job results are scoped
-to that user's saved searches. Use the dashboard to filter or export results,
-pause searches, or remove a saved search. Removing a search does not delete
-collected postings.
+From the dashboard, submit a search term and country to fetch postings
+immediately. Results are associated with your account so you can view, filter,
+and export them. Search definitions are kept internally to scope results and
+allow command-line reruns; there is no saved-search management UI.
 
 ```powershell
+# Optional: replace the default provider with an authorized implementation.
+# $env:JOB_DATA_PROVIDER = "your_package.YourProvider"
 python manage.py run_search
 python manage.py run_search --query-id 1
 python manage.py run_details --limit 500
 python manage.py run_details --limit 500 --retry-failed
 ```
 
-`run_search` processes all enabled queries by default and upserts records using
-the provider source and external job ID. `run_details` processes pending
-postings; `--retry-failed` includes failures from earlier runs. Both commands
-can be run repeatedly. The commands make no network requests until a provider
-is configured.
+`run_search` processes all enabled query definitions by default and upserts
+records using the provider source and external job ID. It can also be run for
+one query with `--query-id`. `run_details` processes pending postings;
+`--retry-failed` includes failures from earlier runs. Both commands can be
+rerun independently. Dashboard searches and commands make network requests
+only when explicitly submitted or run.
 
 The home page at `/` provides login and registration links. The authenticated
 dashboard at `/dashboard/` lists and filters a user's collected postings with
-pagination. Signed-in users can export their own results and staff can export
-all postings and company fields at `/jobs/export.csv`.
+pagination. Signed-in users can export their filtered results as CSV or Excel,
+and staff can export all postings and company fields at `/jobs/export.csv`.
 
 ## Tests
 
