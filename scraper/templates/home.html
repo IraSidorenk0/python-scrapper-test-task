@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Jobpost | Find your next role{% endblock %}
+
+{% block content %}
+    <div class="landing">
+        <section class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow"><span class="eyebrow-dot"></span> A clearer way to job search</p>
+                <h1>Find and manage <span>job postings.</span></h1>
+                <p class="hero-description">
+                    Save searches by role and country, then keep the collected
+                    opportunities organized in one personal dashboard.
+                </p>
+                <div class="hero-actions">
+                    <a class="button button-primary button-large" href="{% url 'scraper:register' %}">
+                        Create your account
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+                    <a class="button button-outline button-large" href="{% url 'scraper:login' %}">Log in</a>
+                </div>
+                <p class="hero-footnote">
+                    <span class="footnote-check" aria-hidden="true">&#10003;</span>
+                    Your searches and results, together in one place
+                </p>
+            </div>
+
+            <div class="hero-visual" aria-label="Illustration of the job search dashboard">
+                <div class="visual-orbit orbit-one"></div>
+                <div class="visual-orbit orbit-two"></div>
+                <div class="preview-card">
+                    <div class="preview-heading">
+                        <div>
+                            <span class="preview-kicker">YOUR WORKSPACE</span>
+                            <h2>Search overview</h2>
+                        </div>
+                        <span class="preview-avatar" aria-hidden="true">J</span>
+                    </div>
+                    <div class="preview-search">
+                        <span class="search-icon" aria-hidden="true"></span>
+                        <span>Product designer</span>
+                        <span class="preview-country">US</span>
+                    </div>
+                    <div class="preview-summary">
+                        <span>RECENT MATCHES</span>
+                        <span class="preview-count">02</span>
+                    </div>
+                    <article class="preview-job">
+                        <span class="company-mark mark-blue" aria-hidden="true">N</span>
+                        <div class="preview-job-copy">
+                            <strong>Product Designer</strong>
+                            <span>Northstar Studio &middot; Remote</span>
+                        </div>
+                        <span class="job-status" aria-label="New result"></span>
+                    </article>
+                    <article class="preview-job">
+                        <span class="company-mark mark-peach" aria-hidden="true">F</span>
+                        <div class="preview-job-copy">
+                            <strong>UX Designer</strong>
+                            <span>Fieldwork &middot; New York</span>
+                        </div>
+                        <span class="job-status" aria-label="New result"></span>
+                    </article>
+                    <div class="preview-footer">
+                        <span class="footer-lines" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span>Manage all your saved searches</span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </div>
+                </div>
+                <div class="floating-note">
+                    <span class="note-icon" aria-hidden="true">&#10003;</span>
+                    <span><strong>All in one place</strong><small>Your job search, organized</small></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="benefits" aria-label="How it works">
+            <article class="benefit">
+                <span class="benefit-number">01</span>
+                <div>
+                    <h2>Save a search</h2>
+                    <p>Choose a role and country to keep your search parameters together.</p>
+                </div>
+            </article>
+            <article class="benefit">
+                <span class="benefit-number">02</span>
+                <div>
+                    <h2>Collect matches</h2>
+                    <p>Your configured scraper processes saved searches independently.</p>
+                </div>
+            </article>
+            <article class="benefit">
+                <span class="benefit-number">03</span>
+                <div>
+                    <h2>Manage results</h2>
+                    <p>Review, filter, and export your collected job postings from the dashboard.</p>
+                </div>
+            </article>
+        </section>
+    </div>
+{% endblock %}

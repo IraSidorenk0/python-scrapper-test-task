@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Jobpost{% endblock %}
+
+{% block content %}
+    <div class="dashboard-page">
+        <section class="dashboard-heading">
+            <div>
+                <p class="eyebrow"><span class="eyebrow-dot"></span> YOUR WORKSPACE</p>
+                <h1>Your dashboard</h1>
+                <p>Save a search, collect matching roles, and keep everything organized.</p>
+            </div>
+            <a class="button button-outline" href="{% url 'scraper:export_user_jobs_csv' %}?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}">
+                <span class="download-icon" aria-hidden="true">&darr;</span>
+                Export results
+            </a>
+        </section>
+
+        <div class="dashboard-top-grid">
+            <section class="dashboard-card search-builder">
+                <div class="section-heading">
+                    <span class="section-icon icon-blue" aria-hidden="true">
+                        <span class="search-icon"></span>
+                    </span>
+                    <div>
+                        <p class="section-kicker">GET STARTED</p>
+                        <h2>Start a job search</h2>
+                    </div>
+                </div>
+                <form method="post" class="dashboard-search-form">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button class="button button-primary" type="submit">
+                        Save search
+                        <span aria-hidden="true">&rarr;</span>
+                    </button>
+                </form>
+                <p class="process-note">
+                    <span class="note-dot" aria-hidden="true"></span>
+                    Searches are collected by the scraper process. Run
+                    <code>python manage.py run_search</code> to fetch results.
+                </p>
+            </section>
+
+            <section class="dashboard-card saved-searches">
+                <div class="section-heading section-heading-spread">
+                    <div class="section-heading">
+                        <span class="section-icon icon-mint" aria-hidden="true">
+                            <span class="saved-search-icon"></span>
+                        </span>
+                        <div>
+                            <p class="section-kicker">YOUR ACTIVITY</p>
+                            <h2>Saved searches</h2>
+                        </div>
+                    </div>
+                    <span class="section-count">{{ queries|length }}</span>
+                </div>
+
+                {% if queries %}
+                    <div class="saved-search-list">
+                        {% for saved_query in queries %}
+                            <article class="saved-search-item">
+                                <div class="saved-search-info">
+                                    <div class="saved-search-title">
+                                        <a href="?query_id={{ saved_query.pk }}">{{ saved_query.query }}</a>
+                                        {% if not saved_query.enabled %}
+                                            <span class="status-pill status-paused">Paused</span>
+                                        {% elif saved_query.last_run_at %}
+                                            {% if saved_query.last_error %}
+                                                <span class="status-pill status-review">Needs review</span>
+                                            {% else %}
+                                                <span class="status-pill status-complete">Collected</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="status-pill status-queued">Queued</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="saved-search-meta">
+                                        <span>{{ saved_query.country }}</span>
+                                        <span class="meta-separator" aria-hidden="true"></span>
+                                        <span>Last run: {{ saved_query.last_run_at|default:"Not run" }}</span>
+                                    </p>
+                                    {% if saved_query.last_error %}
+                                        <details class="search-error-details">
+                                            <summary>View search errors</summary>
+                                            <pre>{{ saved_query.last_error }}</pre>
+                                        </details>
+                                    {% endif %}
+                                </div>
+                                <div class="saved-search-actions">
+                                    <form method="post" action="{% url 'scraper:toggle_search_query' saved_query.pk %}">
+                                        {% csrf_token %}
+                                        <button class="button button-outline button-small" type="submit">
+                                            {% if saved_query.enabled %}Pause{% else %}Enable{% endif %}
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'scraper:delete_search_query' saved_query.pk %}">
+                                        {% csrf_token %}
+                                        <button class="button button-danger button-small" type="submit">Remove</button>
+                                    </form>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-searches">
+                        <span class="empty-search-icon" aria-hidden="true"></span>
+                        <p>No saved searches yet.</p>
+                        <span>Add a role and country to get started.</span>
+                    </div>
+                {% endif %}
+            </section>
+        </div>
+
+        <section class="dashboard-card results-card">
+            <div class="results-heading">
+                <div>
+                    <p class="section-kicker">YOUR COLLECTION</p>
+                    <h2>Collected results{% if selected_query %}<span class="heading-context">{{ selected_query.query }} &middot; {{ selected_query.country }}</span>{% endif %}</h2>
+                </div>
+                <div class="results-total">
+                    <strong>{{ page.paginator.count }}</strong>
+                    <span>{% if page.paginator.count == 1 %}job{% else %}jobs{% endif %}</span>
+                </div>
+            </div>
+
+            <form method="get" class="results-filters">
+                <label class="filter-search">
+                    <span class="visually-hidden">Search results</span>
+                    <span class="search-icon" aria-hidden="true"></span>
+                    <input type="search" name="q" value="{{ search_term }}" placeholder="Title, company, or location">
+                </label>
+                <label class="filter-country">
+                    <span class="visually-hidden">Filter by country</span>
+                    <input type="search" name="country" value="{{ country }}" placeholder="Country">
+                </label>
+                {% if selected_query %}
+                    <input type="hidden" name="query_id" value="{{ selected_query.pk }}">
+                {% endif %}
+                <button class="button button-primary" type="submit">Filter results</button>
+                {% if search_term or country %}
+                    <a class="clear-filters" href="?{% if selected_query %}query_id={{ selected_query.pk }}{% endif %}">Clear</a>
+                {% endif %}
+            </form>
+
+            {% if page.object_list %}
+                <div class="results-table-wrap">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Job title</th>
+                                <th scope="col">Company</th>
+                                <th scope="col">Location</th>
+                                <th scope="col">Posted</th>
+                                <th scope="col">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in page %}
+                                <tr>
+                                    <td>
+                                        {% if job.job_url %}
+                                            <a class="job-title-link" href="{{ job.job_url }}" target="_blank" rel="noopener noreferrer">{{ job.title }}</a>
+                                        {% else %}
+                                            <span class="job-title-text">{{ job.title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ job.company.name|default:"—" }}</td>
+                                    <td>{{ job.location|default:"—" }}</td>
+                                    <td>{{ job.posted_at|default:"—" }}</td>
+                                    <td><span class="status-pill status-{{ job.details_status }}">{{ job.get_details_status_display }}</span></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if page.has_other_pages %}
+                    <nav class="pagination" aria-label="Results pagination">
+                        <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+                        <div class="pagination-actions">
+                            {% if page.has_previous %}
+                                <a class="button button-outline button-small" href="?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}&amp;page={{ page.previous_page_number }}">Previous</a>
+                            {% endif %}
+                            {% if page.has_next %}
+                                <a class="button button-outline button-small" href="?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}&amp;page={{ page.next_page_number }}">Next</a>
+                            {% endif %}
+                        </div>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <div class="empty-results">
+                    <span class="empty-results-icon" aria-hidden="true">
+                        <span class="search-icon"></span>
+                    </span>
+                    {% if search_term or country %}
+                        <h3>No jobs match these filters</h3>
+                        <p>Try changing or clearing the filters to see more results.</p>
+                    {% else %}
+                        <h3>No collected jobs yet</h3>
+                        <p>Save a search above and run the scraper to see matching job postings here.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}

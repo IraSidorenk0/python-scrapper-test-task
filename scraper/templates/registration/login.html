@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Log in | Jobpost{% endblock %}
+
+{% block content %}
+    <div class="auth-page">
+        <div class="auth-layout">
+            <section class="auth-intro">
+                <p class="eyebrow"><span class="eyebrow-dot"></span> Welcome back</p>
+                <h1>Keep your job search <span>moving.</span></h1>
+                <p class="auth-description">
+                    Sign in to pick up where you left off and see the opportunities
+                    collected for your saved searches.
+                </p>
+                <div class="auth-points">
+                    <p><span class="auth-point-icon" aria-hidden="true">&#10003;</span> Your saved searches in one place</p>
+                    <p><span class="auth-point-icon" aria-hidden="true">&#10003;</span> Results organized for you</p>
+                    <p><span class="auth-point-icon" aria-hidden="true">&#10003;</span> Easy filtering and CSV export</p>
+                </div>
+                <div class="auth-note">
+                    <span class="auth-note-mark" aria-hidden="true">J</span>
+                    <p><strong>A more organized search.</strong><br>One dashboard for the jobs you find.</p>
+                </div>
+            </section>
+
+            <section class="auth-card" aria-labelledby="login-title">
+                <div class="auth-card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3.5 19 6v5.5c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6l7-2.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                        <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <p class="auth-card-kicker">MEMBER ACCESS</p>
+                <h2 id="login-title">Log in to Jobpost</h2>
+                <p class="auth-card-description">Enter your details to open your dashboard.</p>
+
+                <form method="post" class="auth-form">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="auth-error" role="alert">{{ form.non_field_errors }}</div>
+                    {% endif %}
+                    <div class="form-field">
+                        <label for="{{ form.username.id_for_label }}">Username</label>
+                        {{ form.username }}
+                        {% for error in form.username.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.password.id_for_label }}">Password</label>
+                        {{ form.password }}
+                        {% for error in form.password.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="next" value="{{ next }}">
+                    <button class="button button-primary auth-submit" type="submit">
+                        Log in
+                        <span aria-hidden="true">&rarr;</span>
+                    </button>
+                </form>
+
+                <p class="auth-switch">
+                    New to Jobpost?
+                    <a href="{% url 'scraper:register' %}">Create an account</a>
+                </p>
+            </section>
+        </div>
+    </div>
+{% endblock %}
