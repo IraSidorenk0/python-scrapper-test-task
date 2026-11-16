@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
+from urllib.parse import urlsplit
 
 from django.db import transaction
 from django.utils import timezone
@@ -95,6 +96,21 @@ def _company_external_id(data: Mapping[str, Any]) -> str:
     return f"name:{digest}"
 
 
+def _linkedin_profile_key(value: Any) -> str:
+    profile_url = _text(value).strip()
+    try:
+        parsed_url = urlsplit(profile_url)
+    except ValueError:
+        return ""
+    hostname = (parsed_url.hostname or "").lower()
+    if parsed_url.scheme not in {"http", "https"} or not (
+        hostname == "linkedin.com" or hostname.endswith(".linkedin.com")
+    ):
+        return ""
+    path = parsed_url.path.rstrip("/")
+    return f"https://www.linkedin.com{path}" if path else ""
+
+
 def _upsert_company(source: str, data: Any) -> Company | None:
     if not data:
         return None
@@ -109,16 +125,39 @@ def _upsert_company(source: str, data: Any) -> Company | None:
         for key, field in COMPANY_TEXT_FIELDS.items()
         if key in data
     }
-    company, created = Company.objects.get_or_create(
+    company = Company.objects.filter(
         source=source,
         external_id=external_id,
-        defaults={**defaults, "raw_data": dict(data)},
-    )
-    if not created:
-        for field, value in defaults.items():
-            setattr(company, field, value)
-        company.raw_data = {**company.raw_data, **data}
-        company.save(update_fields=[*defaults, "raw_data"])
+    ).first()
+    profile_key = _linkedin_profile_key(data.get("profile_url"))
+    if company is None and profile_key:
+        candidates = Company.objects.filter(
+            source=source,
+            profile_url__startswith=profile_key,
+        )
+        company = next(
+            (
+                candidate
+                for candidate in candidates
+                if _linkedin_profile_key(candidate.profile_url) == profile_key
+            ),
+            None,
+        )
+
+    if company is None:
+        company, created = Company.objects.get_or_create(
+            source=source,
+            external_id=external_id,
+            defaults={**defaults, "raw_data": dict(data)},
+        )
+        if created:
+            return company
+
+    company.external_id = external_id
+    for field, value in defaults.items():
+        setattr(company, field, value)
+    company.raw_data = {**company.raw_data, **data}
+    company.save(update_fields=[*defaults, "external_id", "raw_data"])
     return company
 
 
@@ -228,10 +267,45 @@ def _apply_details(posting: JobPosting, source: str, details: Mapping[str, Any])
     posting.save()
 
 
+def _enrich_company_details(
+    details: Mapping[str, Any],
+    posting: JobPosting,
+    provider: JobDataProvider,
+) -> Mapping[str, Any]:
+    get_company_details = getattr(provider, "get_company_details", None)
+    if not callable(get_company_details):
+        return details
+
+    company_data = details.get("company")
+    if isinstance(company_data, Mapping):
+        company_data = dict(company_data)
+    elif isinstance(company_data, str):
+        company_data = {"name": company_data}
+    else:
+        company_data = {}
+
+    profile_url = company_data.get("profile_url")
+    if not profile_url and posting.company is not None:
+        profile_url = posting.company.profile_url
+    if not profile_url:
+        return details
+
+    enriched_company = get_company_details(profile_url)
+    if not isinstance(enriched_company, Mapping):
+        raise ValueError("Company details must be an object.")
+    if not enriched_company:
+        return details
+
+    company_data.update(enriched_company)
+    company_data.setdefault("profile_url", profile_url)
+    return {**details, "company": company_data}
+
+
 def run_details(
     *,
     limit: int = 500,
     retry_failed: bool = False,
+    refresh: bool = False,
     provider: JobDataProvider | None = None,
 ) -> DetailsReport:
     if limit < 1:
@@ -242,6 +316,8 @@ def run_details(
         raise ValueError("The configured provider's source must not be empty.")
 
     statuses = [JobPosting.DetailsStatus.PENDING]
+    if refresh:
+        statuses.append(JobPosting.DetailsStatus.COMPLETE)
     if retry_failed:
         statuses.append(JobPosting.DetailsStatus.FAILED)
     postings = (
@@ -256,6 +332,7 @@ def run_details(
             details = provider.get_details(posting)
             if not isinstance(details, Mapping):
                 raise ValueError("A details response must be an object.")
+            details = _enrich_company_details(details, posting, provider)
             with transaction.atomic():
                 _apply_details(posting, source, details)
             completed += 1

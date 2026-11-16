@@ -1,5 +1,7 @@
 import csv
+import json
 from io import BytesIO
+from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -9,10 +11,12 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import ImproperlyConfigured
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.views.decorators.http import require_POST
 from django.views.generic import CreateView
 from openpyxl import Workbook
 
@@ -156,6 +160,82 @@ def dashboard(request):
             "selected_query": search_query,
         },
     )
+
+
+def _dashboard_return_url(request):
+    query_params = {
+        key: value
+        for key in ("q", "country", "query_id", "page")
+        if (value := request.GET.get(key, "").strip())
+    }
+    dashboard_url = reverse("scraper:dashboard")
+    if query_params:
+        dashboard_url = f"{dashboard_url}?{urlencode(query_params)}"
+    return dashboard_url
+
+
+@login_required
+@require_POST
+def clear_search_error(request, query_id):
+    search_query = get_object_or_404(
+        SearchQuery,
+        pk=query_id,
+        user=request.user,
+    )
+    if search_query.last_error:
+        search_query.last_error = ""
+        search_query.save(update_fields=("last_error", "updated_at"))
+        messages.success(request, "Saved search error cleared.")
+    return redirect(_dashboard_return_url(request))
+
+
+@login_required
+def job_details(request, job_id):
+    posting = get_object_or_404(
+        JobPosting.objects.filter(found_by__user=request.user)
+        .select_related("company")
+        .distinct(),
+        pk=job_id,
+    )
+    company = posting.company
+    return render(
+        request,
+        "job_details.html",
+        {
+            "job": posting,
+            "company": company,
+            "back_url": _dashboard_return_url(request),
+            "job_raw_data": json.dumps(
+                posting.raw_data,
+                ensure_ascii=False,
+                indent=2,
+            ),
+            "company_raw_data": json.dumps(
+                company.raw_data if company else {},
+                ensure_ascii=False,
+                indent=2,
+            ),
+        },
+    )
+
+
+@login_required
+@require_POST
+def remove_user_job(request, job_id):
+    with transaction.atomic():
+        posting = get_object_or_404(
+            JobPosting.objects.filter(found_by__user=request.user).distinct(),
+            pk=job_id,
+        )
+        user_query_ids = list(
+            SearchQuery.objects.filter(user=request.user).values_list("pk", flat=True)
+        )
+        posting.found_by.remove(*user_query_ids)
+        if not posting.found_by.exists():
+            posting.delete()
+
+    messages.success(request, "Job posting removed from your results.")
+    return redirect(_dashboard_return_url(request))
 
 
 class _CsvEcho:

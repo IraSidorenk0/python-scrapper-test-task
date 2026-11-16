@@ -17,6 +17,8 @@ the included LinkedIn provider). It must expose:
   The provider is responsible for following the source's supported pagination.
 - `get_details(posting)`: a normalized job dictionary, optionally including
   nested `company` details.
+- optional `get_company_details(profile_url)`: normalized company fields for
+  providers that support a separate company-profile enrichment step.
 
 Each search result must include `external_id` and `title`. Supported job fields
 are `location`, `description`, `job_url`, `posted_at`, `employment_type`,
@@ -35,7 +37,11 @@ use of that data source is permitted. It uses ordinary HTTP requests, a
 15-second timeout, sequential pagination, and a one-second default delay
 between search pages; it does not log in or bypass access controls. Search
 pages are capped at 20 by default. You can reduce that cap or set it to the
-limit allowed by your data source with `LINKEDIN_MAX_PAGES`.
+limit allowed by your data source with `LINKEDIN_MAX_PAGES`. The details stage
+also enriches known LinkedIn company profiles with public organization data;
+each company profile is fetched once per details run. If LinkedIn redirects a
+later page back to the first page, pagination stops rather than failing or
+processing duplicate results.
 
 ## Setup
 
@@ -64,19 +70,26 @@ python manage.py run_search
 python manage.py run_search --query-id 1
 python manage.py run_details --limit 500
 python manage.py run_details --limit 500 --retry-failed
+python manage.py run_details --refresh --limit 10000
 ```
 
 `run_search` processes all enabled query definitions by default and upserts
 records using the provider source and external job ID. It can also be run for
 one query with `--query-id`. `run_details` processes pending postings;
-`--retry-failed` includes failures from earlier runs. Both commands can be
-rerun independently. Dashboard searches and commands make network requests
-only when explicitly submitted or run.
+`--retry-failed` includes failures from earlier runs, and `--refresh` also
+reprocesses completed postings so newly extracted job or company fields are
+saved. Adjust `--limit` to cover the number of records you want to refresh.
+Both commands can be rerun independently. Dashboard searches and commands make
+network requests only when explicitly submitted or run.
 
 The home page at `/` provides login and registration links. The authenticated
 dashboard at `/dashboard/` lists and filters a user's collected postings with
-pagination. Signed-in users can export their filtered results as CSV or Excel,
-and staff can export all postings and company fields at `/jobs/export.csv`.
+pagination. Each posting's Details page displays its saved job and company
+information and collection status. Search errors are stored on their search
+query and can be cleared independently of collected postings. Users can remove
+postings from their own results; shared postings remain available to other
+users. Signed-in users can export their filtered results as CSV or Excel, and
+staff can export all postings and company fields at `/jobs/export.csv`.
 
 ## Tests
 

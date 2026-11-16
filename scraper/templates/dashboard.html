@@ -74,7 +74,16 @@
 
             {% if selected_query.last_error %}
                 <div class="provider-error" role="status">
-                    <strong>Some LinkedIn results could not be processed.</strong>
+                    <div class="provider-error-heading">
+                        <div>
+                            <strong>Some LinkedIn results could not be processed.</strong>
+                            <p>Deleting job postings does not clear this saved search error.</p>
+                        </div>
+                        <form method="post" action="{% url 'scraper:clear_search_error' selected_query.pk %}?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}&amp;query_id={{ selected_query.pk }}{% if page.number %}&amp;page={{ page.number }}{% endif %}">
+                            {% csrf_token %}
+                            <button class="button button-outline button-small" type="submit">Clear error</button>
+                        </form>
+                    </div>
                     <details>
                         <summary>Show details</summary>
                         <pre>{{ selected_query.last_error }}</pre>
@@ -91,7 +100,7 @@
                                 <th scope="col">Company</th>
                                 <th scope="col">Location</th>
                                 <th scope="col">Posted</th>
-                                <th scope="col">Details</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -107,7 +116,15 @@
                                     <td>{{ job.company.name|default:"—" }}</td>
                                     <td>{{ job.location|default:"—" }}</td>
                                     <td>{{ job.posted_at|default:"—" }}</td>
-                                    <td><span class="status-pill status-{{ job.details_status }}">{{ job.get_details_status_display }}</span></td>
+                                    <td>
+                                        <div class="table-actions">
+                                            <a class="button button-outline button-small" href="{% url 'scraper:job_details' job.pk %}?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}&amp;page={{ page.number }}">Details</a>
+                                            <form method="post" action="{% url 'scraper:remove_user_job' job.pk %}?q={{ search_term|urlencode }}&amp;country={{ country|urlencode }}{% if selected_query %}&amp;query_id={{ selected_query.pk }}{% endif %}&amp;page={{ page.number }}">
+                                                {% csrf_token %}
+                                                <button class="button button-danger button-small" type="submit" aria-label="Remove {{ job.title|escape }}">Remove</button>
+                                            </form>
+                                        </div>
+                                    </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -151,7 +168,10 @@
                     <span class="empty-results-icon" aria-hidden="true">
                         <span class="search-icon"></span>
                     </span>
-                    {% if search_term or country %}
+                    {% if selected_query.last_error %}
+                        <h3>Search incomplete</h3>
+                        <p>The search did not complete successfully. Retry it to update these results.</p>
+                    {% elif search_term or country %}
                         <h3>No jobs match these filters</h3>
                         <p>Try changing or clearing the filters to see more results.</p>
                     {% elif selected_query %}
